@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="no"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skole-AI — demo (Matematikk R1)</title>
+<style>
+:root{--bg:#0f1221;--card:#1a1f38;--ink:#eef1ff;--mut:#9aa3c7;--acc:#6ea8fe;--good:#3ddc97;--warn:#ffb454;--line:#2a3157}
+*{box-sizing:border-box}body{margin:0;font:16px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+header{padding:28px 22px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#161a30,#0f1221)}
+h1{margin:0 0 4px;font-size:22px}.sub{color:var(--mut);font-size:14px}
+.wrap{max-width:960px;margin:0 auto;padding:22px}
+.tabs{display:flex;gap:8px;margin:18px 0}
+.tab{padding:8px 14px;border:1px solid var(--line);border-radius:999px;cursor:pointer;color:var(--mut);font-size:14px}
+.tab.on{background:var(--acc);color:#06122e;border-color:var(--acc);font-weight:600}
+.panel{display:none}.panel.on{display:block}
+.term{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin:12px 0}
+.term h3{margin:0 0 2px;font-size:16px}.term .meta{color:var(--mut);font-size:13px;margin-bottom:10px}
+.goal{padding:10px 12px;border-left:3px solid var(--acc);background:#141832;border-radius:8px;margin:8px 0}
+.goal .code{color:var(--acc);font-weight:600;font-size:13px}
+.goal .pre{color:var(--mut);font-size:12px;margin-top:4px}
+.vurd{color:var(--good);font-size:13px;margin-top:8px}
+.strand{display:inline-block;font-size:11px;color:var(--mut);border:1px solid var(--line);border-radius:6px;padding:1px 7px;margin-left:6px}
+textarea{width:100%;min-height:120px;background:#0c0f1f;color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:12px;font:14px/1.5 inherit}
+button{background:var(--acc);color:#06122e;border:0;border-radius:10px;padding:10px 16px;font-weight:600;cursor:pointer;font-size:14px}
+.result{margin-top:14px}
+.mis{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--warn);border-radius:10px;padding:12px;margin:8px 0}
+.mis .pct{color:var(--warn);font-weight:700}
+.tiltak{color:var(--good);font-size:13px;margin-top:6px}
+.note{background:#10243a;border:1px solid #1d4e74;border-radius:10px;padding:12px;margin-top:12px;color:#cfe6ff;font-size:14px}
+.pill{font-size:12px;color:var(--mut)}.k{color:var(--acc)}
+small.dim{color:var(--mut)}
+</style></head><body>
+<header><div class="wrap" style="padding:0">
+<h1>Skole-AI <span class="pill">· demo</span></h1>
+<div class="sub">Matematikk R1 · lærer-kontrollert · ingen elevdata · alt på norsk</div>
+</div></header>
+<div class="wrap">
+<div class="tabs">
+<div class="tab on" data-t="plan">1 · Årsplan på 1 sekund</div>
+<div class="tab" data-t="loop">2 · Den lukkede sløyfen</div>
+</div>
+
+<div class="panel on" id="plan">
+<p><small class="dim">Læreren velger fag → får en ferdig, læreplanforankret årsplan. Rekkefølgen følger forkunnskaps-grafen (hvilke mål bygger på hvilke), ikke tilfeldig. Læreren eier og redigerer alt.</small></p>
+<div id="planOut"></div>
+</div>
+
+<div class="panel" id="loop">
+<p><small class="dim">Etter en time limer læreren inn <b>anonyme</b> svar (ett per linje). AI gjør tolkningen — læreren slipper. Prøv det forhåndsutfylte, eller skriv egne.</small></p>
+<textarea id="answers">den deriverte i punktet er bare y-verdien til f(x)
+jeg regnet gjennomsnitt mellom de to punktene
+f'(2) = f(2) = 5
+stigningstall mellom a og b
+tangentens stigningstall, brukte grenseverdi av h
+den momentane vekstfarten som grense naar h gaar mot 0</textarea>
+<div style="margin-top:10px"><button onclick="runLoop()">Analyser klassen → foreslå justering</button></div>
+<div class="result" id="loopOut"></div>
+</div>
+</div>
+
+<script>
+const DB = {"plan": {"fag": "Matematikk R1", "aar": 2, "status": "UTKAST v0 — deterministisk, kalibreres med laerer", "skolerute_uker": 36, "innhold_uker": 28, "perioder": [{"termin": "Termin 1a (skolestart -> hostferie)", "uker_total": 8, "uker_innhold": 6, "uker_vurdering": 2, "maal": [{"kode": "KM3098", "uker": 3, "strand": "algebra_funksjoner", "tekst": "utforske og forstå regneregler for potenser og logaritmer, og bruke ulike strategier for å løse eksponentialligninger og logaritmeligninger", "forkunnskap": "bygger paa 1T: KM404, KM446"}, {"kode": "KM3112", "uker": 3, "strand": "geometri_vektorer", "tekst": "forstå begrepet vektor og regneregler for vektorer i planet, og bruke vektorer til å beregne ulike størrelser i planet", "forkunnskap": "bygger paa 1T: KM394, KM409"}], "vurderingspunkt": "Underveisvurdering paa malene i denne terminen"}, {"termin": "Termin 1b (hostferie -> jul)", "uker_total": 10, "uker_innhold": 9, "uker_vurdering": 1, "maal": [{"kode": "KM3117", "uker": 2, "strand": "grenseverdi_kontinuitet", "tekst": "bruke ulike strategier for å utforske og bestemme grenseverdier til funksjoner, og utforske og argumentere for anvendelser av grenseverdier", "forkunnskap": "bygger paa 1T: KM446"}, {"kode": "KM3115", "uker": 2, "strand": "geometri_vektorer", "tekst": "anvende parameterframstillinger til linjer og bruke parameterframstillinger til å løse naturvitenskapelige problemer", "forkunnskap": "krever R1: KM3112"}, {"kode": "KM3118", "uker": 1, "strand": "grenseverdi_kontinuitet", "tekst": "gjøre rede for og argumentere for om en funksjon er kontinuerlig eller diskontinuerlig i et punkt i et definisjonsområde, og gi eksempler på anvendelser av diskontinuerlige funksjoner", "forkunnskap": "krever R1: KM3117"}, {"kode": "KM3119", "uker": 2, "strand": "derivasjon", "tekst": "bestemme den deriverte i et punkt geometrisk, algebraisk og ved numeriske metoder, og gi eksempler på funksjoner som ikke er deriverbare i gitte punkter", "forkunnskap": "bygger paa 1T: KM401; krever R1: KM3117"}, {"kode": "KM3110", "uker": 2, "strand": "derivasjon", "tekst": "forstå begrepene vekstfart, grenseverdi, derivasjon og kontinuitet, og bruke disse for å løse praktiske problemer", "forkunnskap": "bygger paa 1T: KM401; krever R1: KM3119, KM3118"}], "vurderingspunkt": "Underveisvurdering paa malene i denne terminen"}, {"termin": "Termin 2a (nyttar -> vinterferie)", "uker_total": 6, "uker_innhold": 5, "uker_vurdering": 1, "maal": [{"kode": "KM3111", "uker": 3, "strand": "derivasjon", "tekst": "analysere og tolke ulike funksjoner ved å bruke derivasjon", "forkunnskap": "krever R1: KM3119"}, {"kode": "KM3116", "uker": 2, "strand": "algebra_funksjoner", "tekst": "utforske, analysere og derivere ulike funksjoner og deres omvendte funksjoner, og gjøre rede for egenskaper til og sammenhenger mellom slike funksjoner", "forkunnskap": "bygger paa 1T: KM446, KM396; krever R1: KM3098, KM3119"}], "vurderingspunkt": "Underveisvurdering paa malene i denne terminen"}, {"termin": "Termin 2b (vinterferie -> paske)", "uker_total": 6, "uker_innhold": 5, "uker_vurdering": 1, "maal": [{"kode": "KM3109", "uker": 3, "strand": "modellering", "tekst": "modellere og analysere eksponentiell og logistisk vekst i reelle datasett", "forkunnskap": "bygger paa 1T: KM402; krever R1: KM3098, KM3111"}, {"kode": "KM3114", "uker": 2, "strand": "modellering", "tekst": "anvende derivasjon til å analysere og tolke egne matematiske modeller av reelle datasett", "forkunnskap": "bygger paa 1T: KM399; krever R1: KM3111, KM3109"}], "vurderingspunkt": "Underveisvurdering paa malene i denne terminen"}, {"termin": "Termin 2c (paske -> eksamen/sommer)", "uker_total": 6, "uker_innhold": 3, "uker_vurdering": 3, "maal": [{"kode": "KM3113", "uker": 3, "strand": "modellering", "tekst": "planlegge og gjennomføre et selvstendig arbeid med reelle datasett knyttet til naturvitenskapelige temaer og forhold, og analysere og presentere funn", "forkunnskap": "bygger paa 1T: KM399, KM402; krever R1: KM3114"}], "vurderingspunkt": "Underveisvurdering paa malene i denne terminen"}], "ikke_plassert": []}, "tax": {"_om": "Misforstaaelses-taksonomi for R1 (UTKAST v0). Moat-data: bygges/utvides med laerer og vokser med bruk. Kjente, veldokumenterte matematiske misforstaaelser. nokkelord = deterministisk forste-match; LLM gjor den egentlige klyngingen naar nokkel er satt.", "KM3098": [{"id": "LOG-SUM", "beskrivelse": "Tror log(a+b) = log a + log b (blander med potensregler)", "nokkelord": ["log(", "lg(", "+ log", "ln("], "tiltak": "Kontrasterende eksempler: log(a*b) vs log(a+b); la elevene teste numerisk."}, {"id": "POT-NEG", "beskrivelse": "Feil med negative/rasjonale eksponenter (a^-n tolkes som -a^n)", "nokkelord": ["^-", "negativ eksponent", "minus"], "tiltak": "Definisjon a^-n = 1/a^n med tallnaere eksempler."}, {"id": "EKSP-LIN", "beskrivelse": "Loeser eksponentialligning lineaert (deler paa grunntall i stedet for log)", "nokkelord": ["deler paa", "/2^", "uten log"], "tiltak": "Vis hvorfor logaritme er den inverse operasjonen."}], "KM3117": [{"id": "GRENSE-VERDI", "beskrivelse": "Tror grenseverdien alltid er lik funksjonsverdien i punktet", "nokkelord": ["setter inn", "f(a)", "samme som verdien"], "tiltak": "Eksempel med hull/diskontinuitet der grense != f(a)."}, {"id": "NULL-DELT", "beskrivelse": "Haandterer 0/0 som 0 eller udefinert uten forenkling", "nokkelord": ["0/0", "udefinert", "= 0"], "tiltak": "Faktoriser og forkort foer innsetting."}], "KM3118": [{"id": "KONT-DERIV", "beskrivelse": "Tror kontinuerlig = deriverbar (og omvendt)", "nokkelord": ["deriverbar betyr", "kontinuerlig saa deriverbar", "knekk"], "tiltak": "Moteksempel: |x| er kontinuerlig men ikke deriverbar i 0."}], "KM3119": [{"id": "GJSN-MOMENTAN", "beskrivelse": "Blander gjennomsnittlig og momentan vekstfart", "nokkelord": ["gjennomsnitt", "(f(b)-f(a))/(b-a)", "stigningstall mellom"], "tiltak": "Knytt momentan til grenseverdi av gjennomsnittlig naar h->0."}, {"id": "DERIV-VERDI", "beskrivelse": "Tror den deriverte i et punkt er funksjonsverdien, ikke stigningstallet", "nokkelord": ["f(x) verdi", "samme som f", "y-verdi"], "tiltak": "Tolk f'(a) som stigningstall til tangenten geometrisk."}], "KM3110": [{"id": "DERIV-REGEL", "beskrivelse": "Feil bruk av produkt-/kjerneregelen (deriverer faktorvis)", "nokkelord": ["deriverer hver", "faktorvis", "(uv)' = u'v'"], "tiltak": "Vis produktregelen med konkret motekempel."}], "KM3112": [{"id": "VEKT-SKALAR", "beskrivelse": "Behandler vektor som skalar (ignorerer retning)", "nokkelord": ["bare lengde", "uten retning", "tall"], "tiltak": "Komponentregning + geometrisk tolkning samtidig."}, {"id": "VEKT-ADD", "beskrivelse": "Adderer vektorer feil (lengder i stedet for komponenter)", "nokkelord": ["legger sammen lengdene", "|a|+|b|"], "tiltak": "Tegn parallellogram-/trekantmetoden."}]}};
+const strandName = s => ({algebra_funksjoner:"algebra & funksjoner",grenseverdi_kontinuitet:"grenseverdi & kontinuitet",derivasjon:"derivasjon",modellering:"modellering",geometri_vektorer:"geometri & vektorer"}[s]||s);
+
+function renderPlan(){
+  let h="";
+  for(const p of DB.plan.perioder){
+    if(!p.maal.length) continue;
+    h+=`<div class="term"><h3>${p.termin}</h3><div class="meta">${p.uker_innhold} uker fagstoff + ${p.uker_vurdering} uker vurdering/repetisjon</div>`;
+    for(const m of p.maal){
+      h+=`<div class="goal"><span class="code">${m.kode}</span><span class="strand">${strandName(m.strand)}</span> · ${m.uker} uker<div>${m.tekst}</div><div class="pre">↳ ${m.forkunnskap}</div></div>`;
+    }
+    h+=`<div class="vurd">✓ ${p.vurderingspunkt}</div></div>`;
+  }
+  document.getElementById('planOut').innerHTML=h;
+}
+renderPlan();
+
+// MISFORSTAAELSESMOTOR (samme deterministiske logikk som backend)
+function analyze(goal, answers){
+  const pats = DB.tax[goal]||[]; const n=answers.length;
+  const hits={}; pats.forEach(p=>hits[p.id]=0);
+  for(const a of answers){const low=a.toLowerCase();
+    for(const p of pats){ if(p.nokkelord.some(k=>low.includes(k.toLowerCase()))) hits[p.id]++; }}
+  const funn=pats.filter(p=>hits[p.id]>0).map(p=>({id:p.id,beskrivelse:p.beskrivelse,antall:hits[p.id],andel:Math.round(hits[p.id]/n*100),tiltak:p.tiltak})).sort((a,b)=>b.antall-a.antall);
+  const feil=Object.values(hits).reduce((a,b)=>a+b,0);
+  return {n,funn,mestring:Math.round(Math.max(0,1-feil/n)*100)};
+}
+function runLoop(){
+  const answers=document.getElementById('answers').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  const r=analyze('KM3119',answers);
+  let h=`<div class="term"><h3>Innsikt — KM3119 (derivert i punkt)</h3><div class="meta">${r.n} anonyme svar · estimert mestring <b class="k">${r.mestring}%</b></div>`;
+  if(!r.funn.length){h+=`<div class="vurd">Ingen tydelig misforståelse.</div></div>`;}
+  else{
+    for(const f of r.funn){
+      h+=`<div class="mis"><span class="pct">${f.andel}%</span> (${f.antall}/${r.n}) — ${f.beskrivelse}<div class="tiltak">↳ Tiltak: ${f.tiltak}</div></div>`;
+    }
+    const top=r.funn[0];
+    h+=`<div class="note"><b>Forslag til justering (lærer godkjenner):</b><br>Klassen ligger ~1 uke bak på <b>KM3119</b> pga «${top.id}». Legg inn en målrettet øvingsuke på dette i Termin 1b; nedstrøms mål forskyves, vurderingspunkt justeres.</div>`;
+    h+=`</div>`;
+  }
+  document.getElementById('loopOut').innerHTML=h;
+}
+
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on'); document.getElementById(t.dataset.t).classList.add('on');
+});
+</script></body></html>
