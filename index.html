@@ -36,7 +36,7 @@ th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vert
 tr:last-child td{border-bottom:0}
 th{color:var(--mut);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px;background:#fafafb}
 .wk{color:var(--purple);font-weight:700;white-space:nowrap}.vrow td{color:var(--good);background:#f6fbf6}
-textarea{width:100%;min-height:110px;background:#fff;color:var(--ink);border:1.5px solid var(--line-strong);border-radius:11px;padding:13px;font:14px/1.5 inherit;transition:border-color .12s,box-shadow .12s}
+textarea{width:100%;min-height:110px;background:#fff;color:var(--ink);border:1.5px solid var(--line-strong);border-radius:11px;padding:13px;font-family:inherit;font-size:14px;line-height:1.5;transition:border-color .12s,box-shadow .12s}
 textarea:focus{outline:0;border-color:var(--purple);box-shadow:0 0 0 3px var(--purple-soft)}
 button{background:var(--purple);color:#fff;border:0;border-radius:10px;padding:11px 18px;font-weight:600;cursor:pointer;font-size:14px;transition:.12s;box-shadow:var(--sh-sm)}button:hover{background:var(--purple-d);box-shadow:var(--sh-md)}button:active{transform:translateY(1px)}
 .mis{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:12px;padding:14px;margin:10px 0;box-shadow:var(--sh-sm)}
@@ -69,7 +69,24 @@ button{background:var(--purple);color:#fff;border:0;border-radius:10px;padding:1
 .assistant.collapsed .asst-rail{display:flex;align-items:center;justify-content:center;height:100%;cursor:pointer;writing-mode:vertical-rl;color:var(--purple);font-weight:700;letter-spacing:1px;gap:14px}
 .asst-rail .dot{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--purple),#7a7ed6);color:#fff;display:flex;align-items:center;justify-content:center;writing-mode:horizontal-tb;box-shadow:var(--sh-sm)}
 .asst-hint{font-size:13px;color:var(--mut);line-height:1.55;background:var(--bg);border-radius:10px;padding:11px 13px}
-.assistant .chat{flex:1;min-height:180px}.assistant textarea{min-height:60px}
+.assistant .chat{flex:1;min-height:180px}
+/* Linear-stil meldingsfelt: flatt, raffinert, diskret */
+.composer{border:1px solid var(--line-strong);border-radius:8px;background:#fcfcfd;transition:border-color .12s,background .12s}
+.composer:focus-within{border-color:#c5c8e8;background:#fff;box-shadow:0 0 0 1px rgba(94,106,210,.18)}
+.composer-input{padding:9px 12px 2px}
+.composer-input textarea{width:100%;min-height:20px;max-height:140px;border:0;outline:0;background:transparent;box-shadow:none;padding:1px 0;margin:0;font-family:inherit;font-size:13.5px;line-height:1.5;color:var(--ink);resize:none;letter-spacing:-.01em}
+.composer-input textarea:focus{border:0;box-shadow:none}
+.composer-input textarea::placeholder{color:#9a9aa6}
+.composer-bar{display:flex;align-items:center;justify-content:space-between;padding:2px 6px 6px}
+.ct-left{display:flex;gap:0}
+.ct-icon{background:transparent;color:#9a9aa6;border:0;border-radius:6px;width:28px;height:28px;padding:0;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:none;transition:.1s}
+.ct-icon:hover{background:rgba(94,106,210,.08);color:var(--purple);box-shadow:none}.ct-icon:active{transform:none}
+.ct-icon svg{width:16px;height:16px}
+.ct-send{background:transparent;color:#b6b6c2;border:0;border-radius:6px;width:28px;height:28px;padding:0;display:flex;align-items:center;justify-content:center;cursor:default;box-shadow:none;transition:.12s}
+.ct-send svg{width:17px;height:17px}
+.ct-send.on{background:var(--purple);color:#fff;cursor:pointer;box-shadow:0 1px 2px rgba(94,106,210,.4)}.ct-send.on:hover{background:var(--purple-d)}.ct-send:active{transform:none}
+.composer-hint{font-size:11px;color:#a6a6b0;padding:6px 2px 0;letter-spacing:.01em}
+.composer-hint kbd{font:inherit;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:0 4px;color:var(--mut)}
 </style></head><body>
 <div id="landing">
  <div class="brand"><div class="logo">&#8721;</div><div><h1>Skole-AI</h1></div></div>
@@ -86,8 +103,17 @@ button{background:var(--purple);color:#fff;border:0;border-radius:10px;padding:1
    <div class="asst-hint" id="asstHint">Spør om å endre planen. Jeg sjekker mot forkunnskaps-grafen for faget — du bestemmer.</div>
    <div class="ex" id="chatEx"></div>
    <div class="chat" id="chatlog"></div>
-   <textarea id="chatin" placeholder="F.eks. kan jeg ta et tema tidligere?"></textarea>
-   <button onclick="sendChat()">Send</button>
+   <div class="composer" id="composer">
+    <div class="composer-input"><textarea id="chatin" rows="1" placeholder="Skriv en melding" oninput="onComposerInput()" onkeydown="composerKey(event)"></textarea></div>
+    <div class="composer-bar">
+     <div class="ct-left">
+      <button class="ct-icon" type="button" title="Formatering" tabindex="-1"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M5 7V5h14v2h-6v12h-2V7H5z"/></svg></button>
+      <button class="ct-icon" type="button" title="Emoji" tabindex="-1"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5s1.3 1.8 3.5 1.8 3.5-1.8 3.5-1.8" stroke-linecap="round"/><circle cx="9" cy="9.5" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="9.5" r="1" fill="currentColor" stroke="none"/></svg></button>
+      <button class="ct-icon" type="button" title="Vedlegg" tabindex="-1"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.5l-8.6 8.6a5 5 0 0 1-7.1-7.1l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l7.9-7.9"/></svg></button>
+     </div>
+     <button class="ct-send" id="ctSend" type="button" onclick="sendChat()" title="Send" disabled><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M3.4 20.4l17.45-7.48a1 1 0 0 0 0-1.84L3.4 3.6a.993.993 0 0 0-1.39.91L2 9.12c0 .5.37.93.87.99L17 12 2.87 13.88c-.5.07-.87.5-.87 1l.01 4.61c0 .71.73 1.2 1.39.91z"/></svg></button>
+    </div>
+   </div>
   </div>
   <div class="asst-rail" onclick="toggleAsst()"><div class="dot">&#8721;</div><span>Skole-AI assistent</span></div>
  </div>
@@ -184,8 +210,11 @@ function advise(txt){const s=DB.subjects[CUR];const t=txt.toLowerCase();const gs
  if(later){for(const g of gs){const rev=revDeps(s,g);if(rev.length)return{cls:"warn",vd:"Mulig, men noe må flyttes med",b:`<b>${g}</b> er forutsetning for ${rev.join(", ")}. Flyttes det senere, må de også flyttes bakover.`};}return{cls:"ok",vd:"Greit",b:`<b>${gs[0]}</b> er ikke forutsetning for andre mål, så det kan trygt flyttes senere.`};}
  return{cls:"",vd:"Si litt mer",b:`Vil du flytte <b>${gs[0]}</b>, bruke mer tid, eller melde at klassen ligger bak?`};}
 function push(h){const l=document.getElementById('chatlog');l.innerHTML+=h;l.scrollTop=l.scrollHeight;}
-function sendChat(){const i=document.getElementById('chatin');const v=i.value.trim();if(!v)return;push(`<div class="msg me">${v}</div>`);i.value="";const a=advise(v);push(`<div class="msg ai ${a.cls}"><div class="vd">${a.vd}</div>${a.b}</div>`);}
-function ex(el){document.getElementById('chatin').value=el.textContent;sendChat();}
+function autoGrow(i){i.style.height='auto';i.style.height=Math.min(i.scrollHeight,140)+'px';}
+function onComposerInput(){const i=document.getElementById('chatin');autoGrow(i);document.getElementById('ctSend').classList.toggle('on',!!i.value.trim());}
+function composerKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();}}
+function sendChat(){const i=document.getElementById('chatin');const v=i.value.trim();if(!v)return;push(`<div class="msg me">${v}</div>`);i.value="";autoGrow(i);document.getElementById('ctSend').classList.remove('on');const a=advise(v);push(`<div class="msg ai ${a.cls}"><div class="vd">${a.vd}</div>${a.b}</div>`);}
+function ex(el){const i=document.getElementById('chatin');i.value=el.textContent;onComposerInput();sendChat();}
 function toggleAsst(){document.getElementById('assistant').classList.toggle('collapsed');}
 renderMenu();
 </script></body></html>
