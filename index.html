@@ -62,6 +62,14 @@ h1{font-size:27px;margin:0;letter-spacing:-.3px}.tag{color:var(--mut);margin:6px
 .wk-recipe-btn{align-self:flex-start;margin-top:6px;background:var(--purple-soft);color:var(--purple-d);border:1px solid #d4d8f4;border-radius:8px;padding:6px 12px;font-size:12.5px;font-weight:600;cursor:pointer;box-shadow:none;transition:.12s}
 .wk-recipe-btn:hover{background:#e2e5f7;border-color:var(--purple);box-shadow:none}.wk-recipe-btn:active{transform:none}
 .wk-recipe{display:none;margin-top:8px}.wk-recipe.open{display:block}
+.wk-edit{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line-strong);display:flex;flex-direction:column;gap:7px}
+.wk-flag{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--mut);cursor:pointer;user-select:none}
+.wk-flag input{accent-color:var(--purple);cursor:pointer}
+.wk-note{width:100%;min-height:34px;max-height:120px;resize:none;border:1px solid var(--line-strong);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px;line-height:1.45;color:var(--ink);background:#fcfcfd;transition:border-color .12s}
+.wk-note:focus{outline:0;border-color:var(--purple);box-shadow:0 0 0 1px rgba(94,106,210,.18);background:#fff}
+.wk-saved{font-size:11.5px;color:var(--good);opacity:0;transition:opacity .15s}.wk-saved.on{opacity:1}
+.wk-node.flagged{border-left:3px solid var(--warn)}
+.wk-node.flagged .wk-head{background:#fdf6f0}
 table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--sh-sm)}
 th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
 tr:last-child td{border-bottom:0}
@@ -209,6 +217,18 @@ function tab(id,el){document.querySelectorAll('.nav .item').forEach(x=>x.classLi
  document.querySelectorAll('#wsMain .panel').forEach(x=>x.classList.remove('on'));document.getElementById('p-'+id).classList.add('on');}
 function togTerm(i){document.getElementById('term-'+i).classList.toggle('open');}
 function togWk(id){document.getElementById(id).classList.toggle('open');}
+/* Lagring av laererens planendringer: localStorage (virker overalt, ogsaa offline)
+   + speiling til preferanse-motoren paa serveren naar backend finnes. */
+function teacherId(){let t=localStorage.getItem('skoleai_teacher');if(!t){t='laerer-'+Math.random().toString(36).slice(2,8);localStorage.setItem('skoleai_teacher',t);}return t;}
+function noteKey(){return 'skoleai_notes_'+encodeURIComponent(CUR||'');}
+function loadNotes(){try{return JSON.parse(localStorage.getItem(noteKey())||'{}');}catch(e){return {};}}
+function storeNotes(o){localStorage.setItem(noteKey(),JSON.stringify(o));}
+function flashSaved(wid){const el=document.getElementById('saved-'+wid);if(!el)return;el.textContent='✓ lagret';el.classList.add('on');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('on'),1400);}
+function mirror(field,value,goal){if(!API)return;fetch(API+'/preferences/'+encodeURIComponent(teacherId())+'/edit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({field:field,value:value,goal_code:goal})}).catch(()=>{});}
+function saveNote(wid,val){const o=loadNotes();o[wid]=Object.assign({},o[wid],{note:val});storeNotes(o);flashSaved(wid);mirror('note',val,CUR+'|'+wid);}
+function saveFlag(wid,on){const o=loadNotes();o[wid]=Object.assign({},o[wid],{flag:on});storeNotes(o);flashSaved(wid);const n=document.getElementById(wid);if(n)n.classList.toggle('flagged',on);mirror('flagg',on,CUR+'|'+wid);}
+function growNote(t){t.style.height='auto';t.style.height=Math.min(t.scrollHeight,120)+'px';}
+function applyNotes(){const o=loadNotes();for(const wid in o){const d=o[wid]||{};const ta=document.getElementById('note-'+wid);if(ta&&d.note){ta.value=d.note;growNote(ta);}const cb=document.getElementById('flag-'+wid);if(cb&&d.flag){cb.checked=true;const n=document.getElementById(wid);if(n)n.classList.add('flagged');}}}
 function weekRecipe(wid,strand,ev){if(ev)ev.stopPropagation();const box=document.getElementById('rec-'+wid);if(!box)return;
  if(box.dataset.filled){box.classList.toggle('open');return;}
  const s=DB.subjects[CUR];const topics=ndlaFor(s.fag,strand);let h='';
@@ -235,7 +255,7 @@ function renderAll(s){let h="";
     const sn=w.strand?sname(s.fag,w.strand):'fagstoff';
     h+=`<div class="wk-node" id="${wid}">`;
     h+=`<div class="wk-head" onclick="togWk('${wid}')"><span class="tw"></span><span class="wk-no">Uke ${w.uke}</span><span class="wk-tag">${sn}</span><span class="wk-code">${w.kode}</span></div>`;
-    h+=`<div class="wk-body"><div class="wk-goal">${w.tekst}</div><div class="pre">↳ ${w.forkunnskap||'ingen forutsetninger'}</div><button class="wk-recipe-btn" onclick="weekRecipe('${wid}','${w.strand}',event)">📚 Se oppgavetyper</button><div class="wk-recipe" id="rec-${wid}"></div></div>`;
+    h+=`<div class="wk-body"><div class="wk-goal">${w.tekst}</div><div class="pre">↳ ${w.forkunnskap||'ingen forutsetninger'}</div><button class="wk-recipe-btn" onclick="weekRecipe('${wid}','${w.strand}',event)">📚 Se oppgavetyper</button><div class="wk-recipe" id="rec-${wid}"></div><div class="wk-edit"><label class="wk-flag"><input type="checkbox" id="flag-${wid}" onchange="saveFlag('${wid}',this.checked)"> ⚑ Trenger mer tid</label><textarea class="wk-note" id="note-${wid}" rows="1" placeholder="Lærerens notat — lagres automatisk" oninput="growNote(this)" onblur="saveNote('${wid}',this.value)"></textarea><span class="wk-saved" id="saved-${wid}"></span></div></div>`;
     h+=`</div>`;
    }
   }
@@ -249,6 +269,7 @@ function renderAll(s){let h="";
  h+=`<select id="loopGoal" onchange="fillLoop()">`+taxCodes.map(c=>`<option value="${c}">${c}: ${(DB.subjects[CUR].goals.find(g=>g.kode===c)||{}).tekst.slice(0,55)}...</option>`).join("")+`</select>`;
  h+=`<textarea id="answers"></textarea><div style="margin-top:10px"><button onclick="runLoop()">Analyser klassen → foreslå justering</button></div><div id="loopOut" style="margin-top:14px"></div></div>`;
  document.getElementById('wsMain').innerHTML=h;
+ applyNotes();
  fillLoop();fillChatEx();
  document.getElementById('asstHint').textContent=`Jeg er Per. Spør om ${s.fag}, planlegging — eller hva som helst ellers.`;
 }
