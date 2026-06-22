@@ -59,6 +59,9 @@ h1{font-size:27px;margin:0;letter-spacing:-.3px}.tag{color:var(--mut);margin:6px
 .wk-node.open>.wk-head .tw{transform:rotate(45deg);margin-top:-6px}
 .wk-body .wk-goal{font-size:13.5px;line-height:1.5;color:var(--ink)}
 .wk-body .pre{color:var(--mut);font-size:12px}
+.wk-recipe-btn{align-self:flex-start;margin-top:6px;background:var(--purple-soft);color:var(--purple-d);border:1px solid #d4d8f4;border-radius:8px;padding:6px 12px;font-size:12.5px;font-weight:600;cursor:pointer;box-shadow:none;transition:.12s}
+.wk-recipe-btn:hover{background:#e2e5f7;border-color:var(--purple);box-shadow:none}.wk-recipe-btn:active{transform:none}
+.wk-recipe{display:none;margin-top:8px}.wk-recipe.open{display:block}
 table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--sh-sm)}
 th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
 tr:last-child td{border-bottom:0}
@@ -206,6 +209,13 @@ function tab(id,el){document.querySelectorAll('.nav .item').forEach(x=>x.classLi
  document.querySelectorAll('#wsMain .panel').forEach(x=>x.classList.remove('on'));document.getElementById('p-'+id).classList.add('on');}
 function togTerm(i){document.getElementById('term-'+i).classList.toggle('open');}
 function togWk(id){document.getElementById(id).classList.toggle('open');}
+function weekRecipe(wid,strand,ev){if(ev)ev.stopPropagation();const box=document.getElementById('rec-'+wid);if(!box)return;
+ if(box.dataset.filled){box.classList.toggle('open');return;}
+ const s=DB.subjects[CUR];const topics=ndlaFor(s.fag,strand);let h='';
+ if(!topics.length){h='<div class="rt-why">Ingen NDLA-oppgaver er mappet for dette emnet ennå. Se etter tilsvarende oppgavetype i fagboka.</div>';}
+ else{const seen=new Set();topics.forEach(t=>{if(seen.has(t.emne))return;seen.add(t.emne);h+=topicCard(t,'Oppgavetype for dette temaet — finn den i fagboka eller bruk NDLA');});}
+ box.innerHTML='<div class="resept" style="margin-top:0"><div class="rsub">Produktet lager ikke oppgaver — det peker på hvilke typer du skal se etter.</div>'+h+'</div>';
+ box.dataset.filled='1';box.classList.add('open');}
 function planExpand(open){document.querySelectorAll('.tree .term-node, .tree .wk-node').forEach(n=>{if(n.classList.contains('vurd-node'))return;n.classList.toggle('open',open);});}
 function renderAll(s){let h="";
  h+=`<div class="panel on" id="p-plan"><div class="h2">Årsplan</div><div class="sub">Terminer og uker i én oversikt. Klikk for å utvide. Rekkefølgen følger forkunnskaps-grafen for ${s.fag}. ${s.fag==='Matematikk R1'?'':'<b>Agent-generert utkast — kalibreres med lærer.</b>'} Læreren eier og redigerer alt.</div>`;
@@ -225,7 +235,7 @@ function renderAll(s){let h="";
     const sn=w.strand?sname(s.fag,w.strand):'fagstoff';
     h+=`<div class="wk-node" id="${wid}">`;
     h+=`<div class="wk-head" onclick="togWk('${wid}')"><span class="tw"></span><span class="wk-no">Uke ${w.uke}</span><span class="wk-tag">${sn}</span><span class="wk-code">${w.kode}</span></div>`;
-    h+=`<div class="wk-body"><div class="wk-goal">${w.tekst}</div><div class="pre">↳ ${w.forkunnskap||'ingen forutsetninger'}</div></div>`;
+    h+=`<div class="wk-body"><div class="wk-goal">${w.tekst}</div><div class="pre">↳ ${w.forkunnskap||'ingen forutsetninger'}</div><button class="wk-recipe-btn" onclick="weekRecipe('${wid}','${w.strand}',event)">📚 Se oppgavetyper</button><div class="wk-recipe" id="rec-${wid}"></div></div>`;
     h+=`</div>`;
    }
   }
